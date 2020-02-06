@@ -49,7 +49,7 @@ class LightCrypt {
     }
   }
 
-  ///Encrypt (with iv) and return in base 64
+  ///Encrypt bytes (with iv) and return in base 64
   core.String encrypt(core.String input, core.String iv) {
     if (_type == 'Salsa20' ||
         _type == 'Salsa20/8' ||
@@ -95,6 +95,53 @@ class LightCrypt {
           Uint8List.fromList(localIV.sublist(0, 16)));
       machine..init(false, params);
       var inter = machine.process(Uint8List.fromList(localInput));
+      return base64.encode(inter);
+    }
+    return '';
+  }
+
+    ///Encrypt (with iv) and return in base 64
+  core.String encryptBytes(core.List<int> input, core.String iv) {
+    if (_type == 'Salsa20' ||
+        _type == 'Salsa20/8' ||
+        _type == 'Salsa20/12' ||
+        _type == 'ChaCha20' ||
+        _type == 'ChaCha20/12' ||
+        _type == 'ChaCha20/8') {
+      var localKey = Uint8List.fromList(key.codeUnits);
+      var localIV = Uint8List.fromList(iv.codeUnits);
+      var params = ParametersWithIV<KeyParameter>(
+          KeyParameter(Uint8List.fromList(localKey.sublist(0, 32))),
+          Uint8List.fromList(localIV.sublist(0, 8)));
+      _encrypter..init(true, params);
+      var inter = _encrypter.process(Uint8List.fromList(input));
+      return base64.encode(inter);
+    } else if (_type == 'Grain-128') {
+      var machine = StreamCipher(_type);
+      var localKey = Uint8List.fromList(key.codeUnits);
+      var localIV = Uint8List.fromList(iv.codeUnits);
+      var params = ParametersWithIV<KeyParameter>(
+          KeyParameter(Uint8List.fromList(localKey.sublist(0, 32))),
+          Uint8List.fromList(localIV.sublist(0, 12)));
+      machine..init(false, params);
+      var inter = machine.process(Uint8List.fromList(input));
+      return base64.encode(inter);
+    } else if (_type == 'ISAAC' || _type == 'RC4') {
+      var machine = StreamCipher(_type);
+      var localKey = Uint8List.fromList(key.codeUnits);
+      var params = KeyParameter(Uint8List.fromList(localKey.sublist(0, 32)));
+      machine..init(false, params);
+      var inter = machine.process(Uint8List.fromList(input));
+      return base64.encode(inter);
+    } else if (_type == 'HC-256') {
+      var machine = StreamCipher(_type);
+      var localKey = Uint8List.fromList(key.codeUnits);
+      var localIV = Uint8List.fromList(iv.codeUnits);
+      var params = ParametersWithIV<KeyParameter>(
+          KeyParameter(Uint8List.fromList(localKey.sublist(0, 32))),
+          Uint8List.fromList(localIV.sublist(0, 16)));
+      machine..init(false, params);
+      var inter = machine.process(Uint8List.fromList(input));
       return base64.encode(inter);
     }
     return '';
@@ -149,5 +196,56 @@ class LightCrypt {
       return utf8.decode(inter);
     }
     return '';
+  }
+
+   ///Decrypt base 64 (with iv) and return original bytes
+  core.List<int> decryptBytes(core.String encrypted, core.String iv) {
+    if (_type == 'Salsa20' ||
+        _type == 'Salsa20/8' ||
+        _type == 'Salsa20/12' ||
+        _type == 'ChaCha20' ||
+        _type == 'ChaCha20/12' ||
+        _type == 'ChaCha20/8') {
+      var localKey = Uint8List.fromList(key.codeUnits);
+      var localIV = Uint8List.fromList(iv.codeUnits);
+      var localInput = base64.decode(encrypted);
+      var params = ParametersWithIV<KeyParameter>(
+          KeyParameter(Uint8List.fromList(localKey.sublist(0, 32))),
+          Uint8List.fromList(localIV.sublist(0, 8)));
+      _encrypter..init(false, params);
+      var inter = _encrypter.process(localInput);
+      return inter;
+    } else if (_type == 'Grain-128') {
+      var machine = StreamCipher(_type);
+      var localKey = Uint8List.fromList(key.codeUnits);
+      var localIV = Uint8List.fromList(iv.codeUnits);
+      var localInput = base64.decode(encrypted);
+      var params = ParametersWithIV<KeyParameter>(
+          KeyParameter(Uint8List.fromList(localKey.sublist(0, 32))),
+          Uint8List.fromList(localIV.sublist(0, 12)));
+      machine..init(false, params);
+      var inter = machine.process(localInput);
+      return inter;
+    } else if (_type == 'HC-256') {
+      var machine = StreamCipher(_type);
+      var localKey = Uint8List.fromList(key.codeUnits);
+      var localIV = Uint8List.fromList(iv.codeUnits);
+      var localInput = base64.decode(encrypted);
+      var params = ParametersWithIV<KeyParameter>(
+          KeyParameter(Uint8List.fromList(localKey.sublist(0, 32))),
+          Uint8List.fromList(localIV.sublist(0, 16)));
+      machine..init(false, params);
+      var inter = machine.process(localInput);
+      return inter;
+    } else if (_type == 'ISAAC' || _type == 'RC4') {
+      var machine = StreamCipher(_type);
+      var localKey = Uint8List.fromList(key.codeUnits);
+      var localInput = base64.decode(encrypted);
+      var params = KeyParameter(Uint8List.fromList(localKey.sublist(0, 32)));
+      machine..init(false, params);
+      var inter = machine.process(localInput);
+      return inter;
+    }
+    return List<int>(0);
   }
 }
